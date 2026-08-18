@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local datasets and source location exports
+dataset/
+dataset2/
+data/
+locations*.json
+ukInd.json
+
+# Trained model checkpoints
+*.pt
+*.pth
+checkpoints/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+tempCodeRunnerFile.py
+
+# Earlier local prototypes (kept on disk, not part of the public project)
+scraper.py
+scraperV2.py
+scraperV3.py
+test.py
