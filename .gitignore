@@ -25,7 +25,6 @@ Thumbs.db
 tempCodeRunnerFile.py
 
 # Earlier local prototypes (kept on disk, not part of the public project)
-scraper.py
 scraperV2.py
 scraperV3.py
 test.py

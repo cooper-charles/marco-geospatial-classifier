@@ -20,12 +20,22 @@ The training pipeline also uses color jitter and a random horizontal panorama ro
 .
 |-- app.py           # Flask inference API
 |-- train.py         # training and evaluation pipeline
-|-- scraperV4.py     # latest dataset collection script
+|-- scraper.py       # dataset collection script
 |-- requirements.txt
 `-- README.md
 ```
 
 The image datasets, location exports, and trained checkpoints are intentionally excluded from Git because they are large generated artifacts. A trained checkpoint can be attached separately to a GitHub Release.
+
+## Collecting images
+
+`config.json` controls the location file, output folder, number of locations, and dataset split. After updating those values, run:
+
+```bash
+python scraper.py
+```
+
+The scraper creates the train, validation, and test folders automatically. The generated `data/` directory is ignored by Git.
 
 ## Setup
 
@@ -106,4 +116,3 @@ The numbers above only demonstrate the response format; they are not reported mo
 - The API uses CUDA automatically when it is available and otherwise runs on CPU.
 - Training images and model weights are not committed to this repository.
 - Street View availability and request behavior may change over time.
-

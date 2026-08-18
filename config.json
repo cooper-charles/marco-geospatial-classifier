@@ -1,5 +1,7 @@
 {
-    "numImages": 50000,
-    "numCountries": 10,
-    "locationsFilePath": "locationsV4.json"
+    "locationsFilePath": "locations.json",
+    "outputDirectory": "data",
+    "numLocations": 50000,
+    "trainSplit": 0.8,
+    "validationSplit": 0.1
 }
