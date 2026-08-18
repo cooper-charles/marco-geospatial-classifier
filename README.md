@@ -1,6 +1,6 @@
 # GeoGuessr AI
 
-GeoGuessr AI is a computer vision project that predicts the country shown in a Google Street View panorama. I built the data collection pipeline, trained a ConvNeXt-Tiny image classifier, and exposed the trained model through a small Flask API.
+GeoGuessr AI is a computer vision project that predicts the country shown in a Google Street View panorama. I built the data collection pipeline and trained a ConvNeXt-Tiny image classifier on the collected images.
 
 The latest dataset used ten country classes: Australia, Brazil, Italy, Japan, Kenya, Mexico, South Africa, Thailand, the United Kingdom, and the United States.
 
@@ -10,7 +10,7 @@ The latest dataset used ten country classes: Australia, Brazil, Italy, Japan, Ke
 2. A Street View tile is downloaded, cropped, and resized to `320 x 160`.
 3. The images are split into training, validation, and test sets.
 4. A pretrained ConvNeXt-Tiny model is fine-tuned with class-weighted cross-entropy loss.
-5. The Flask API accepts a panorama ID and returns a country prediction with class probabilities.
+5. The model with the best validation accuracy is evaluated on a held-out test set and saved.
 
 The training pipeline also uses color jitter and a random horizontal panorama roll. Rolling the panorama changes the position of its seam without mirroring geographic clues such as which side of the road traffic uses.
 
@@ -18,9 +18,9 @@ The training pipeline also uses color jitter and a random horizontal panorama ro
 
 ```text
 .
-|-- app.py           # Flask inference API
 |-- train.py         # training and evaluation pipeline
 |-- scraper.py       # dataset collection script
+|-- config.json      # scraper and training settings
 |-- requirements.txt
 `-- README.md
 ```
@@ -29,7 +29,7 @@ The image datasets, location exports, and trained checkpoints are intentionally 
 
 ## Collecting images
 
-`config.json` controls the location file, output folder, number of locations, and dataset split. After updating those values, run:
+`config.json` controls the location file, output folder, number of locations, and dataset split. Add a location file containing a `customCoordinates` list with `panoId`, `lat`, and `lng` values, then run:
 
 ```bash
 python scraper.py
@@ -52,10 +52,10 @@ pip install -r requirements.txt
 
 ## Training
 
-In `train.py`, set `DATASET_DIR` to a dataset with this layout:
+The trainer reads the dataset location and training settings from `config.json`. It expects the output created by the scraper:
 
 ```text
-dataset/
+data/
 |-- train/
 |   |-- au/
 |   |-- br/
@@ -72,47 +72,8 @@ python train.py
 
 The script fine-tunes ConvNeXt-Tiny, saves the checkpoint with the best validation accuracy, and evaluates that model on the test split.
 
-## Running the API
-
-Place the trained model at `best_convnext_tiny_V3.pt`, then start the server:
-
-```bash
-python app.py
-```
-
-Check that it is running:
-
-```bash
-curl http://localhost:5000/health
-```
-
-Request a prediction:
-
-```bash
-curl -X POST http://localhost:5000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"pano_id": "PANORAMA_ID"}'
-```
-
-Example response shape:
-
-```json
-{
-  "success": true,
-  "pano_id": "PANORAMA_ID",
-  "predicted_country": "uk",
-  "confidence": 0.82,
-  "probabilities": {
-    "uk": 0.82,
-    "au": 0.07
-  }
-}
-```
-
-The numbers above only demonstrate the response format; they are not reported model results.
-
 ## Notes
 
-- The API uses CUDA automatically when it is available and otherwise runs on CPU.
+- Training uses CUDA automatically when it is available and otherwise runs on CPU.
 - Training images and model weights are not committed to this repository.
 - Street View availability and request behavior may change over time.
