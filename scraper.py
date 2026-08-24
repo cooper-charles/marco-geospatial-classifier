@@ -1,6 +1,6 @@
 import io
+import hashlib
 import json
-from collections import defaultdict
 from pathlib import Path
 
 import requests
@@ -8,6 +8,7 @@ import reverse_geocode
 from PIL import Image
 
 downloadedImgs = 0
+skippedImgs = 0
 
 # apply config
 with open("config.json", "r") as file:
@@ -74,19 +75,16 @@ availableLocations = locations['customCoordinates']
 if numLocations > len(availableLocations):
     raise ValueError(f"numLocations is {numLocations} but the file only has {len(availableLocations)} locations")
 
-# keeps each country's split balanced even if the location file is not sorted
-countryCounts = defaultdict(int)
-
 # add every image to proper folder
 for i in range(numLocations):
     lat = availableLocations[i]["lat"]
     lon = availableLocations[i]["lng"]
+    panoId = availableLocations[i]["panoId"]
     country = country_bounds(lat, lon)
-    countryIndex = countryCounts[country]
-    countryCounts[country] += 1
 
-    # use a repeating group of 100 for an even split within each country
-    splitPosition = countryIndex % 100
+    # consistently put the same panorama in the same split
+    panoHash = hashlib.sha256(panoId.encode("utf-8")).hexdigest()
+    splitPosition = int(panoHash, 16) % 100
     if splitPosition < trainSplit * 100: # 80% training
         split = "train"
     elif splitPosition < (trainSplit + validationSplit) * 100: # 10% validation
@@ -97,9 +95,13 @@ for i in range(numLocations):
     outputPath = outputDirectory / split / country
     outputPath.mkdir(parents=True, exist_ok=True)
 
-    url = "https://streetviewpixels-pa.googleapis.com/v1/tile?cb_client=apiv3&panoid=" + availableLocations[i]['panoId'] + "&output=tile&x=0&y=0&zoom=0&nbt=1&fover=2"
-    imgName = outputPath / f"{country}-{countryIndex}"
+    imgName = outputPath / f"{country}-{panoId}"
+    if Path(str(imgName) + ".jpg").exists():
+        skippedImgs += 1
+        continue
+
+    url = "https://streetviewpixels-pa.googleapis.com/v1/tile?cb_client=apiv3&panoid=" + panoId + "&output=tile&x=0&y=0&zoom=0&nbt=1&fover=2"
 
     downloadedImgs += download_and_crop(url, imgName)
 
-print(f"successfully processed {downloadedImgs}/{numLocations} images")
+print(f"downloaded {downloadedImgs} new images and skipped {skippedImgs} existing images")
