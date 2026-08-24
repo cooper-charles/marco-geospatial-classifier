@@ -17,6 +17,8 @@ with open("config.json", "r") as file:
     outputDirectory = Path(config["outputDirectory"])
     trainSplit = config["trainSplit"]
     validationSplit = config["validationSplit"]
+    imageHeight = config["imageHeight"]
+    imageWidth = config["imageWidth"]
 
 if (trainSplit < 0) or (validationSplit < 0) or (trainSplit + validationSplit >= 1):
     raise ValueError("trainSplit and validationSplit must add up to less than 1")
@@ -45,20 +47,23 @@ def download_and_crop(url, name):
         image_bytes = io.BytesIO(response.content)
         img = Image.open(image_bytes)
 
-        # scale from 512x256 to 320x160
+        # scale image to the size in config
         cropped_img = img.crop(crop_box)
-        cropped_img = cropped_img.resize((320, 160))
+        cropped_img = cropped_img.resize((imageWidth, imageHeight))
 
         # save image
         cropped_img.save(str(name) + ".jpg")
         print(str(name) + " downloaded, cropped, and saved successfully")
 
-        downloadedImgs += 1
+        return 1
 
     except requests.exceptions.RequestException as e:
         print(f"network error occurred: {e}")
     except Exception as e:
         print(f"an error occurred: {e}")
+
+    return 0
+
 
 
 with open(locationsFilePath, "r") as file:
@@ -95,6 +100,6 @@ for i in range(numLocations):
     url = "https://streetviewpixels-pa.googleapis.com/v1/tile?cb_client=apiv3&panoid=" + availableLocations[i]['panoId'] + "&output=tile&x=0&y=0&zoom=0&nbt=1&fover=2"
     imgName = outputPath / f"{country}-{countryIndex}"
 
-    download_and_crop(url, imgName)
+    downloadedImgs += download_and_crop(url, imgName)
 
 print(f"successfully processed {downloadedImgs}/{numLocations} images")

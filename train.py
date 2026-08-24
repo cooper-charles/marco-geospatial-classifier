@@ -17,17 +17,18 @@ with open("config.json", "r") as file:
     config = json.load(file)
 
 DATASET_DIR = Path(config["outputDirectory"])
-IMAGE_HEIGHT = 160
-IMAGE_WIDTH = 320
-BATCH_SIZE = 16
-NUM_EPOCHS = 15
-LEARNING_RATE = .0001
-WEIGHT_DECAY = .0001
+IMAGE_HEIGHT = config["imageHeight"]
+IMAGE_WIDTH = config["imageWidth"]
+BATCH_SIZE = config["batchSize"]
+NUM_EPOCHS = config["numEpochs"]
+LEARNING_RATE = config["learningRate"]
+WEIGHT_DECAY = config["weightDecay"]
+CHECKPOINT_PATH = Path(config["checkpointPath"])
 
 # keep at 0 initially for windows
-NUM_WORKERS = 0
+NUM_WORKERS = config["numWorkers"]
 
-# use cuda if possible
+# use gpu if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -56,6 +57,10 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 
 train_transform = transforms.Compose(
     [
+        transforms.Resize(
+            (IMAGE_HEIGHT, IMAGE_WIDTH),
+            antialias=True,
+        ),
         # jitter and change lighting and color because we are really after classifying geographic features
         # and not just geoguessr specific artifacts
         transforms.ColorJitter(
@@ -77,6 +82,10 @@ train_transform = transforms.Compose(
 # dont augment the validation and test data
 evaluation_transform = transforms.Compose(
     [
+        transforms.Resize(
+            (IMAGE_HEIGHT, IMAGE_WIDTH),
+            antialias=True,
+        ),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=IMAGENET_MEAN,
@@ -266,11 +275,11 @@ for epoch in range(1, NUM_EPOCHS + 1):
     current_lr = optimizer.param_groups[0]["lr"]
 
     print(
-        f"Epoch {epoch:02d}/{NUM_EPOCHS}"
-        f"LR: {current_lr:.2e}"
-        f"Train loss: {train_loss:.4f}"
-        f"Train accuracy: {train_accuracy:.2%}"
-        f"Validation loss: {validation_loss:.4f}"
+        f"Epoch {epoch:02d}/{NUM_EPOCHS} | "
+        f"LR: {current_lr:.2e} | "
+        f"Train loss: {train_loss:.4f} | "
+        f"Train accuracy: {train_accuracy:.2%} | "
+        f"Validation loss: {validation_loss:.4f} | "
         f"Validation accuracy: {validation_accuracy:.2%}"
     )
 
@@ -287,7 +296,7 @@ for epoch in range(1, NUM_EPOCHS + 1):
                 "image_width": IMAGE_WIDTH,
                 "model_name": "convnext_tiny",
             },
-            "best_convnext_tiny.pt",
+            CHECKPOINT_PATH,
         )
 
         print("\nSaved new best model.")
@@ -300,4 +309,4 @@ test_loss, test_accuracy = run_epoch(model, test_loader, training=False,)
 print(f"\nBest validation accuracy: {best_validation_accuracy:.2%}")
 print(f"Final test loss: {test_loss:.4f}")
 print(f"Final test accuracy: {test_accuracy:.2%}")
-print("Saved model: best_convnext_tiny.pt")
+print(f"Saved model: {CHECKPOINT_PATH}")
